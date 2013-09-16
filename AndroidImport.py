@@ -21,6 +21,9 @@ for a_class in raw_class_list:
 
 class AndroidImportCommand(sublime_plugin.TextCommand):
     def run(self, edit):
+        prev_path = os.path.dirname(os.path.abspath(__file__))
+        os.chdir(plugin_path)
+
         # Get the current file contents as a string and parse the java into a tree
         file_contents = self.view.substr(sublime.Region(0, self.view.size()))
         parser = plyj.Parser()
@@ -74,6 +77,8 @@ class AndroidImportCommand(sublime_plugin.TextCommand):
         # Send a status message to show completion
         number_of_imports = str(len(required_imports))
         sublime.status_message("Finished importing " + number_of_imports + " Android classes")
+
+        os.chdir(prev_path)
 
     # Only enabled for java files - Check this by looking for "java" in the current syntax name
     def is_enabled(self):
