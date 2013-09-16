@@ -1,10 +1,10 @@
 [
     {
-        "id": "edit",
+        "id": "tools",
         "children":
         [
-            { "id": "wrap" },
-            { "command": "android_import", "caption": "Import Android" }
+            { "id": "android_import" },
+            { "command": "android_import", "caption": "Import Android Classes" }
         ]
     }
 ]
