@@ -1,0 +1,6 @@
+[
+    {
+        "caption": "Import Android Classes",
+        "command": "android_import"
+    }
+]
