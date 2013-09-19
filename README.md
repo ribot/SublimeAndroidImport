@@ -13,5 +13,7 @@ While looking at an Android java file press `Cmd+Shift+O` to import all Android 
 
 Known Issues
 ------------
-- Generally untested and may miss classes
-- Unable to find classes within anonymous classes - [issue](https://github.com/musiKk/plyj/issues/8)
+- Gets confused and therefore ignore the R class.
+- Cannot handle cases where there are multiple Android classes with the same name, for example `Service`.
+- Generally untested and may miss classes.
+- Unable to find classes within anonymous classes. See this issue on the dependancy [issue](https://github.com/musiKk/plyj/issues/8).

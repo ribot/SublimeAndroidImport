@@ -16,8 +16,15 @@ for a_class in raw_class_list:
     split_label = a_class['label'].split('.')
     class_name = split_label[-1]
     # Checks the first character is uppercase and discards if not, not a class
-    if class_name[0].isupper():
-        android_class_list[class_name] = a_class['label']
+    # Also digards if it's the R class, for now
+    if class_name[0].isupper() and class_name != 'R':
+        if len(split_label) >=2 and split_label[0] == 'java' and split_label[1] == 'lang':
+            pass
+        else:
+            if class_name not in android_class_list:
+                android_class_list[class_name] = list()
+
+            android_class_list[class_name].append(a_class['label'])
 
 class AndroidImportCommand(sublime_plugin.TextCommand):
     def run(self, edit):
@@ -35,10 +42,10 @@ class AndroidImportCommand(sublime_plugin.TextCommand):
             self.look_for_classes(thing)
 
         # Filter to just the android classes
-        found_android_classes = set()
+        found_android_classes = list()
         for found_class in self.classes:
             if found_class in android_class_list:
-                found_android_classes.add(android_class_list[found_class])
+                found_android_classes.append(android_class_list[found_class])
 
         # Look at all current imports
         current_imports = set()
@@ -47,9 +54,14 @@ class AndroidImportCommand(sublime_plugin.TextCommand):
 
         # Get a set of imports which are still required
         required_imports = set()
-        for package in found_android_classes:
-            if package not in current_imports:
-                required_imports.add(package)
+        for packages in found_android_classes:
+            if len(packages) == 1:
+                package = packages[0]
+                if package not in current_imports:
+                    required_imports.add(package)
+            # TODO: We need to ask the user which package they want to use
+            else:
+                print 'Multiple packages in ' + str(packages)
 
         # Create an import string to insert
         import_string = ''
