@@ -89,6 +89,11 @@ class AndroidImportCommand(sublime_plugin.TextCommand):
         # If the current thing is a "Type" then add it to the class list
         if type(thing) is model.Type:
             self.classes.add(thing.name.value)
+        # If its a method invocation we may be calling a static method of a class
+        elif type(thing) is model.MethodInvocation and type(thing.name) is model.Name:
+            possible_class_name = thing.name.value.split('.')[0]
+            if possible_class_name[0].isupper():
+                self.classes.add(possible_class_name)
 
         # Recuse through all lists and "SourceElements" in the attributes of the current thing
         attributes = filter(lambda a: not a.startswith('__') and not callable(getattr(thing,a)), dir(thing))
