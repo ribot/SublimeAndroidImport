@@ -98,7 +98,7 @@ class AndroidImportCommand(sublime_plugin.TextCommand):
         elif type(thing) is model.Name:
             possible_class_name = thing.value.split('.')[0]
             if possible_class_name[0].isupper():
-                classes.add(possible_class_name)
+                self.classes.add(possible_class_name)
 
         # Recuse through all lists and "SourceElements" in the attributes of the current thing
         attributes = filter(lambda a: not a.startswith('__') and not callable(getattr(thing,a)), dir(thing))
