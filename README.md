@@ -7,6 +7,6 @@ Installation
 ------------
 Currently the plugin is not stable enough to be in the package manager, so a manual installation is required. To install you need to copy all the files into a folder in your Sublime plugins directory.
 
-Known Problems
---------------
+Known Issues
+------------
 - Unable to find classes within anonymous classes - [issue](https://github.com/musiKk/plyj/issues/8)
