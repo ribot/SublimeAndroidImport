@@ -4,6 +4,8 @@ plugin_path = os.path.dirname(os.path.abspath(__file__))
 
 class AndroidImportCommand(sublime_plugin.TextCommand):
     def __init__(self, view):
+        self.classes = set()
+
         # Setup the plugin in the super class
         sublime_plugin.TextCommand.__init__(self, view)
 
@@ -28,32 +30,58 @@ class AndroidImportCommand(sublime_plugin.TextCommand):
                     self.android_class_list[class_name].append(a_class['label'])
 
     def run(self, edit):
+        # Change directory to the plugin dir
         prev_path = os.path.dirname(os.path.abspath(__file__))
         os.chdir(plugin_path)
 
-        # Get the current file contents as a string and parse the java into a tree
+        # Get the current file contents as a string
         file_contents = self.view.substr(sublime.Region(0, self.view.size()))
+        # Parse the java into a tree
         parser = plyj.Parser()
         tree = parser.parse_string(file_contents)
 
-        # Start recursing through the tree looking for classes
-        self.classes = set()
-        for thing in tree.type_declarations:
-            self.look_for_classes(thing)
+        self.look_for_classes(tree) # Start recursing through the tree looking for classes
+        found_android_classes = filter_android_classes()
+        current_imports = find_imports(tree)
+        required_imports = find_missing_imports(found_android_classes, current_imports)
+        import_string = create_import_string(required_imports)
+        insert_point = find_import_position(file_contents)
+        self.view.insert(edit, insert_point, import_string)
 
-        # Filter to just the android classes
+        # Send a status message to show completion
+        number_of_imports = str(len(required_imports))
+        sublime.status_message("Finished importing " + number_of_imports + " Android classes")
+
+        # Put the current dir back, just incase
+        os.chdir(prev_path)
+
+    # Only enabled for java files - Check this by looking for "java" in the current syntax name
+    def is_enabled(self):
+        return "java" in self.view.syntax_name(0)
+
+    # Filters out the found class list to just the ones which are in the Android SDK
+    def filter_android_classes(self):
         found_android_classes = list()
+
         for found_class in self.classes:
             if found_class in self.android_class_list:
                 found_android_classes.append(self.android_class_list[found_class])
 
-        # Look at all current imports
+        return found_android_classes
+
+    # Gets the list of imports currently in the java file
+    def find_imports(self, tree):
         current_imports = set()
+
         for an_import in tree.import_declarations:
             current_imports.add(an_import.name.value)
 
-        # Get a set of imports which are still required
+        return current_imports
+
+    # Returns a list of packages which have not been imported
+    def find_missing_imports(self, found_android_classes, current_imports):
         required_imports = set()
+
         for packages in found_android_classes:
             if len(packages) == 1:
                 package = packages[0]
@@ -63,12 +91,11 @@ class AndroidImportCommand(sublime_plugin.TextCommand):
             else:
                 print 'Multiple packages in ' + str(packages)
 
-        # Create an import string to insert
-        import_string = ''
-        for package in required_imports:
-            import_string += 'import ' + package + ';\n'
+        return required_imports
 
-        # Find the last line of imports
+    # Finds the position to add the imports. Will be at the end of the imports or one
+    # line under the package decleration if there are no imports yet
+    def find_import_position(self, file_contents):
         lines = file_contents.split('\n')
         got_to_imports = False
         insert_point = None
@@ -79,28 +106,19 @@ class AndroidImportCommand(sublime_plugin.TextCommand):
                 # Found last import line
                 insert_point = self.view.text_point(i, 0)
                 break
+
         if insert_point is None:
             self.view.insert(edit, self.view.text_point(1, 0), '\n')
             insert_point = self.view.text_point(2, 0)
 
-        # Insert the new imports
-        self.view.insert(edit, insert_point, import_string)
+        return insert_point
 
-        # Send a status message to show completion
-        number_of_imports = str(len(required_imports))
-        sublime.status_message("Finished importing " + number_of_imports + " Android classes")
-
-        os.chdir(prev_path)
-
-        window = sublime.active_window()
-        window.show_quick_panel(['Test', '2', 'Test 3'], self.returned)
-
-    def returned(self, arg):
-        print arg
-
-    # Only enabled for java files - Check this by looking for "java" in the current syntax name
-    def is_enabled(self):
-        return "java" in self.view.syntax_name(0)
+    # Returns the import string given the list of required imports
+    def create_import_string(self, required_imports):
+        import_string = ''
+        for package in required_imports:
+            import_string += 'import ' + package + ';\n'
+        return import_string
 
     # A recursive method for searching for classes in the java parse tree
     def look_for_classes(self, thing):
@@ -119,6 +137,7 @@ class AndroidImportCommand(sublime_plugin.TextCommand):
                 for other_thing in next_thing:
                     self.look_for_classes(other_thing)
 
+    # Checks if the thing describes a class and if so returns a turple with True and the name to add
     def check_add_to_class_list(self, thing):
         # Get the return turple ready
         return_values = collections.namedtuple('Check', ['should_add', 'class_name'])
