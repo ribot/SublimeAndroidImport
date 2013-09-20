@@ -1,32 +1,32 @@
-import sublime, sublime_plugin, plyj, model, json, os
+import sublime, sublime_plugin, plyj, model, json, os, collections
 
-class AndroidClass():
-    def __init__(self, name, package):
-        self.name = name
-        self.package = package
-
-# Load the list of classes
 plugin_path = os.path.dirname(os.path.abspath(__file__))
-json_file = open(plugin_path + '/classes.json')
-raw_class_list = json.loads(json_file.read())
-# Go through the class list and create a dictorary of the classes and packages
-android_class_list = dict()
-for a_class in raw_class_list:
-    # Splits the package list and gets the last part which is the class
-    split_label = a_class['label'].split('.')
-    class_name = split_label[-1]
-    # Checks the first character is uppercase and discards if not, not a class
-    # Also digards if it's the R class, for now
-    if class_name[0].isupper() and class_name != 'R':
-        if len(split_label) >=2 and split_label[0] == 'java' and split_label[1] == 'lang':
-            pass
-        else:
-            if class_name not in android_class_list:
-                android_class_list[class_name] = list()
-
-            android_class_list[class_name].append(a_class['label'])
 
 class AndroidImportCommand(sublime_plugin.TextCommand):
+    def __init__(self, view):
+        # Setup the plugin in the super class
+        sublime_plugin.TextCommand.__init__(self, view)
+
+        # Load the list of classes
+        json_file = open(plugin_path + '/classes.json')
+        raw_class_list = json.loads(json_file.read())
+        # Go through the class list and create a dictorary of the classes and packages
+        self.android_class_list = dict()
+        for a_class in raw_class_list:
+            # Splits the package list and gets the last part which is the class
+            split_label = a_class['label'].split('.')
+            class_name = split_label[-1]
+            # Checks the first character is uppercase and discards if not, not a class
+            # Also digards if it's the R class, for now
+            if class_name[0].isupper() and class_name != 'R':
+                if len(split_label) >=2 and split_label[0] == 'java' and split_label[1] == 'lang':
+                    pass
+                else:
+                    if class_name not in self.android_class_list:
+                        self.android_class_list[class_name] = list()
+
+                    self.android_class_list[class_name].append(a_class['label'])
+
     def run(self, edit):
         prev_path = os.path.dirname(os.path.abspath(__file__))
         os.chdir(plugin_path)
@@ -44,8 +44,8 @@ class AndroidImportCommand(sublime_plugin.TextCommand):
         # Filter to just the android classes
         found_android_classes = list()
         for found_class in self.classes:
-            if found_class in android_class_list:
-                found_android_classes.append(android_class_list[found_class])
+            if found_class in self.android_class_list:
+                found_android_classes.append(self.android_class_list[found_class])
 
         # Look at all current imports
         current_imports = set()
@@ -92,33 +92,54 @@ class AndroidImportCommand(sublime_plugin.TextCommand):
 
         os.chdir(prev_path)
 
+        window = sublime.active_window()
+        window.show_quick_panel(['Test', '2', 'Test 3'], self.returned)
+
+    def returned(self, arg):
+        print arg
+
     # Only enabled for java files - Check this by looking for "java" in the current syntax name
     def is_enabled(self):
         return "java" in self.view.syntax_name(0)
 
     # A recursive method for searching for classes in the java parse tree
     def look_for_classes(self, thing):
-        # If the current thing is a "Type" then add it to the class list
-        if type(thing) is model.Type:
-            self.classes.add(thing.name.value)
-        # If its a method invocation we may be calling a static method of a class
-        elif type(thing) is model.MethodInvocation and type(thing.name) is model.Name:
-            possible_class_name = thing.name.value.split('.')[0]
-            if possible_class_name[0].isupper():
-                self.classes.add(possible_class_name)
-        # Find any other names which could be class names
-        elif type(thing) is model.Name:
-            possible_class_name = thing.value.split('.')[0]
-            if possible_class_name[0].isupper():
-                self.classes.add(possible_class_name)
+        # Check if we need to add this thing to the class list
+        results = self.check_add_to_class_list(thing)
+        if results.should_add:
+            self.classes.add(results.class_name)
 
-        # Recuse through all lists and "SourceElements" in the attributes of the current thing
+        # Recuse through all lists and "SourceElements" in the non-callable attributes of the current thing
         attributes = filter(lambda a: not a.startswith('__') and not callable(getattr(thing,a)), dir(thing))
         for a in attributes:
             next_thing = getattr(thing, a)
-
             if isinstance(next_thing, model.SourceElement):
                 self.look_for_classes(next_thing)
             elif hasattr(next_thing, '__iter__'):
                 for other_thing in next_thing:
                     self.look_for_classes(other_thing)
+
+    def check_add_to_class_list(self, thing):
+        # Get the return turple ready
+        return_values = collections.namedtuple('Check', ['should_add', 'class_name'])
+        should_add = False
+        class_name = None
+
+        # If the current thing is a "Type" then add it to the class list
+        if type(thing) is model.Type:
+            should_add = True
+            class_name = thing.name.value
+        # If its a method invocation we may be calling a static method of a class
+        elif type(thing) is model.MethodInvocation and type(thing.name) is model.Name:
+            possible_class_name = thing.name.value.split('.')[0]
+            if possible_class_name[0].isupper():
+                should_add = True
+                class_name = possible_class_name
+        # Find any other names which could be class names
+        elif type(thing) is model.Name:
+            possible_class_name = thing.value.split('.')[0]
+            if possible_class_name[0].isupper():
+                should_add = True
+                class_name = possible_class_name
+        
+        return return_values(should_add, class_name)
