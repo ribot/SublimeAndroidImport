@@ -1,6 +1,10 @@
-import sublime, sublime_plugin, plyj, model, json, os, collections
+import sublime, sublime_plugin, json, sys, os, collections
 
 plugin_path = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(plugin_path)
+
+import plyj, model
+
 
 class AndroidImportCommand(sublime_plugin.TextCommand):
     def __init__(self, view):
@@ -28,7 +32,6 @@ class AndroidImportCommand(sublime_plugin.TextCommand):
                         self.android_class_list[class_name] = list()
 
                     self.android_class_list[class_name].append(a_class['label'])
-        self.android_class_list['Activity'].append('android.boo.Activity')
 
     def run(self, edit):
         self.edit = edit
@@ -83,7 +86,7 @@ class AndroidImportCommand(sublime_plugin.TextCommand):
 
     # Only enabled for java files - Check this by looking for "java" in the current syntax name
     def is_enabled(self):
-        return "java" in self.view.syntax_name(0)
+        return "java" in self.view.scope_name(0)
 
     # Filters out the found class list to just the ones which are in the Android SDK
     def filter_android_classes(self):
