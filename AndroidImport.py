@@ -28,8 +28,11 @@ class AndroidImportCommand(sublime_plugin.TextCommand):
                         self.android_class_list[class_name] = list()
 
                     self.android_class_list[class_name].append(a_class['label'])
+        self.android_class_list['Activity'].append('android.boo.Activity')
 
     def run(self, edit):
+        self.edit = edit
+
         # Change directory to the plugin dir
         prev_path = os.path.dirname(os.path.abspath(__file__))
         os.chdir(plugin_path)
@@ -41,19 +44,42 @@ class AndroidImportCommand(sublime_plugin.TextCommand):
         tree = parser.parse_string(file_contents)
 
         self.look_for_classes(tree) # Start recursing through the tree looking for classes
-        found_android_classes = filter_android_classes()
-        current_imports = find_imports(tree)
-        required_imports = find_missing_imports(found_android_classes, current_imports)
-        import_string = create_import_string(required_imports)
-        insert_point = find_import_position(file_contents)
+        found_android_classes = self.filter_android_classes()
+        current_imports = self.find_imports(tree)
+        imports = self.find_missing_imports(found_android_classes, current_imports)
+        import_string = self.create_import_string(imports.required)
+        insert_point = self.find_import_position(file_contents)
         self.view.insert(edit, insert_point, import_string)
 
+        # Check if we have any required user input
+        if len(imports.action_needed) > 0:
+            # TODO: Do some user input
+            self.action_needed_imports = imports.action_needed
+            self.ask_user_to_pick_package()
+
         # Send a status message to show completion
-        number_of_imports = str(len(required_imports))
+        number_of_imports = str(len(imports.required))
         sublime.status_message("Finished importing " + number_of_imports + " Android classes")
 
         # Put the current dir back, just incase
         os.chdir(prev_path)
+
+    def ask_user_to_pick_package(self):
+        if len(self.action_needed_imports) > 0:
+            self.package_choices = self.action_needed_imports.pop()
+            sublime.active_window().show_quick_panel(self.package_choices, self.user_picked_package)
+
+    def user_picked_package(self, index):
+        if index >= 0:
+            picked_package = self.package_choices[index]
+            import_string = self.create_import_string([picked_package])
+            file_contents = self.view.substr(sublime.Region(0, self.view.size()))
+            insert_point = self.find_import_position(file_contents)
+            self.view.insert(self.edit, insert_point, import_string)
+
+        # Recurse again to pick the next one
+        self.ask_user_to_pick_package()
+
 
     # Only enabled for java files - Check this by looking for "java" in the current syntax name
     def is_enabled(self):
@@ -80,18 +106,19 @@ class AndroidImportCommand(sublime_plugin.TextCommand):
 
     # Returns a list of packages which have not been imported
     def find_missing_imports(self, found_android_classes, current_imports):
-        required_imports = set()
+        imports = collections.namedtuple('Check', ['required', 'action_needed'])
+        imports.required = set()
+        imports.action_needed = list()
 
         for packages in found_android_classes:
-            if len(packages) == 1:
-                package = packages[0]
-                if package not in current_imports:
-                    required_imports.add(package)
-            # TODO: We need to ask the user which package they want to use
-            else:
-                print 'Multiple packages in ' + str(packages)
+            package = packages[0]
+            if package not in current_imports:
+                if len(packages) == 1:
+                    imports.required.add(package)
+                else:
+                    imports.action_needed.append(packages)
 
-        return required_imports
+        return imports
 
     # Finds the position to add the imports. Will be at the end of the imports or one
     # line under the package decleration if there are no imports yet
@@ -108,7 +135,7 @@ class AndroidImportCommand(sublime_plugin.TextCommand):
                 break
 
         if insert_point is None:
-            self.view.insert(edit, self.view.text_point(1, 0), '\n')
+            self.view.insert(self.edit, self.view.text_point(1, 0), '\n')
             insert_point = self.view.text_point(2, 0)
 
         return insert_point
