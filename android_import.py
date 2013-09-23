@@ -5,7 +5,6 @@ sys.path.append(plugin_path)
 
 import plyj, model
 
-
 class AndroidImportCommand(sublime_plugin.TextCommand):
     def __init__(self, view):
         self.classes = set()
@@ -75,14 +74,9 @@ class AndroidImportCommand(sublime_plugin.TextCommand):
     def user_picked_package(self, index):
         if index >= 0:
             picked_package = self.package_choices[index]
-            import_string = self.create_import_string([picked_package])
-            file_contents = self.view.substr(sublime.Region(0, self.view.size()))
-            insert_point = self.find_import_position(file_contents)
-            self.view.insert(self.edit, insert_point, import_string)
-
+            sublime.active_window().run_command('android_insert', {'picked_package': picked_package})
         # Recurse again to pick the next one
         self.ask_user_to_pick_package()
-
 
     # Only enabled for java files - Check this by looking for "java" in the current syntax name
     def is_enabled(self):
@@ -192,3 +186,10 @@ class AndroidImportCommand(sublime_plugin.TextCommand):
                 class_name = possible_class_name
         
         return return_values(should_add, class_name)
+
+class AndroidInsertCommand(AndroidImportCommand):
+    def run(self, edit, picked_package):
+        import_string = self.create_import_string([picked_package])
+        file_contents = self.view.substr(sublime.Region(0, self.view.size()))
+        insert_point = self.find_import_position(file_contents)
+        self.view.insert(edit, insert_point, import_string)
