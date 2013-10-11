@@ -109,7 +109,12 @@ class AndroidImportCommand(sublime_plugin.TextCommand):
             # If not then add it to the correct list
             if required is not False:
                 if len(packages) == 1:
-                    imports.required.add(package)
+                    split_label = packages[0].split('.')
+                    # Dont bother importing java.lang classes
+                    if len(split_label) >=2 and split_label[0] == 'java' and split_label[1] == 'lang':
+                        pass
+                    else:
+                        imports.required.add(packages[0])
                 else:
                     imports.action_needed.append(packages)
 
@@ -139,12 +144,7 @@ class AndroidImportCommand(sublime_plugin.TextCommand):
     def create_import_string(self, required_imports):
         import_string = ''
         for package in required_imports:
-            split_label = package.split('.')
-            # Dont bother importing java.lang classes
-            if len(split_label) >=2 and split_label[0] == 'java' and split_label[1] == 'lang':
-                pass
-            else:
-                import_string += 'import ' + package + ';\n'
+            import_string += 'import ' + package + ';\n'
         return import_string
 
     # A recursive method for searching for classes in the java parse tree
