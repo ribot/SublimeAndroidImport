@@ -1,0 +1,28 @@
+import json
+
+# Load the list of classes
+json_file = open('./classes.json')
+raw_class_list = json.loads(json_file.read())
+# Go through the class list and create a dictorary of the classes and packages
+android_class_list = dict()
+for a_class in raw_class_list:
+    # Splits the package list and gets the last part which is the class
+    split_label = a_class['label'].split('.')
+    class_name = split_label[-1]
+    # Checks the first character is uppercase and discards if not, not a class
+    # Also digards if it's the R class, for now
+    if class_name[0].isupper() and class_name != 'R':
+        if class_name not in android_class_list:
+            android_class_list[class_name] = list()
+
+        android_class_list[class_name].append(a_class['label'])
+
+lines = ""
+for key in android_class_list:
+    line = key + "::"
+    for package in android_class_list[key]:
+        line = line + package + "::"
+    line = line[:-2]
+    lines = lines + line + "\n"
+
+print lines

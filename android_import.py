@@ -7,29 +7,24 @@ import plyj, model
 
 class AndroidImportCommand(sublime_plugin.TextCommand):
     def __init__(self, view):
-        self.classes = set()
-
         # Setup the plugin in the super class
         sublime_plugin.TextCommand.__init__(self, view)
 
         # Load the list of classes
-        json_file = open(plugin_path + '/classes.json')
-        raw_class_list = json.loads(json_file.read())
-        # Go through the class list and create a dictorary of the classes and packages
-        self.android_class_list = dict()
-        for a_class in raw_class_list:
-            # Splits the package list and gets the last part which is the class
-            split_label = a_class['label'].split('.')
-            class_name = split_label[-1]
-            # Checks the first character is uppercase and discards if not, not a class
-            # Also digards if it's the R class, for now
-            if class_name[0].isupper() and class_name != 'R':
-                if class_name not in self.android_class_list:
-                    self.android_class_list[class_name] = list()
+        classes_file = open(plugin_path + '/classes.txt')
 
-                self.android_class_list[class_name].append(a_class['label'])
+        self.android_class_list = dict()
+        for line in classes_file.readlines():
+            line_parts = line.split('::')
+            key = line_parts[0]
+            line_parts.remove(key)
+
+            self.android_class_list[key] = list()
+            for package in line_parts:
+                self.android_class_list[key].append(''.join(package.split()))
 
     def run(self, edit):
+        self.classes = set()
         self.edit = edit
 
         # Change directory to the plugin dir
