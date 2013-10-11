@@ -66,7 +66,12 @@ class AndroidImportCommand(sublime_plugin.TextCommand):
     def user_picked_package(self, index):
         if index >= 0:
             picked_package = self.package_choices[index]
-            self.view.run_command('android_insert', {'picked_package': picked_package})
+            split_label = picked_package.split('.')
+            # Dont bother importing java.lang classes
+            if len(split_label) >=2 and split_label[0] == 'java' and split_label[1] == 'lang':
+                pass
+            else:
+                self.view.run_command('android_insert', {'picked_package': picked_package})
         # Recurse again to pick the next one
         self.ask_user_to_pick_package()
 
