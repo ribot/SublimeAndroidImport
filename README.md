@@ -1,7 +1,7 @@
 Sublime Android Import
 ======================
 
-A Sublime Text 2 plugin which automatically deals with imports from the Android SDK. When the command is run it will parse the current file and create a list of the Android classes which have been used. It will then automatically add the necessary imports at the top of the file
+A Sublime Text 2/3 plugin which automatically deals with imports from the Android SDK. When the command is run it will parse the current file and create a list of the Android classes which have been used. It will then automatically add the necessary imports at the top of the file
 
 Installation 
 ------------
