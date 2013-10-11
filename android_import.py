@@ -44,8 +44,16 @@ class AndroidImportCommand(sublime_plugin.TextCommand):
 
         self.look_for_classes(tree) # Start recursing through the tree looking for classes
         found_android_classes = self.filter_android_classes()
+        print "Found"
+        print found_android_classes
         current_imports = self.find_imports(tree)
+        print "Current imports"
+        print current_imports
         imports = self.find_missing_imports(found_android_classes, current_imports)
+        print "required no choice"
+        print imports.required
+        print "required with choice"
+        print imports.action_needed
         import_string = self.create_import_string(imports.required)
         insert_point = self.find_import_position(file_contents)
         self.view.insert(edit, insert_point, import_string)
@@ -105,8 +113,14 @@ class AndroidImportCommand(sublime_plugin.TextCommand):
         imports.action_needed = list()
 
         for packages in found_android_classes:
-            package = packages[0]
-            if package not in current_imports:
+            # Check each to see if it's already imported
+            required = True
+            for package in packages:
+                if package in current_imports:
+                    required = False
+
+            # If not then add it to the correct list
+            if required is not False:
                 if len(packages) == 1:
                     imports.required.add(package)
                 else:
