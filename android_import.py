@@ -24,13 +24,10 @@ class AndroidImportCommand(sublime_plugin.TextCommand):
             # Checks the first character is uppercase and discards if not, not a class
             # Also digards if it's the R class, for now
             if class_name[0].isupper() and class_name != 'R':
-                if len(split_label) >=2 and split_label[0] == 'java' and split_label[1] == 'lang':
-                    pass
-                else:
-                    if class_name not in self.android_class_list:
-                        self.android_class_list[class_name] = list()
+                if class_name not in self.android_class_list:
+                    self.android_class_list[class_name] = list()
 
-                    self.android_class_list[class_name].append(a_class['label'])
+                self.android_class_list[class_name].append(a_class['label'])
 
     def run(self, edit):
         self.edit = edit
@@ -141,7 +138,12 @@ class AndroidImportCommand(sublime_plugin.TextCommand):
     def create_import_string(self, required_imports):
         import_string = ''
         for package in required_imports:
-            import_string += 'import ' + package + ';\n'
+            split_label = package.split('.')
+            # Dont bother importing java.lang classes
+            if len(split_label) >=2 and split_label[0] == 'java' and split_label[1] == 'lang':
+                pass
+            else:
+                import_string += 'import ' + package + ';\n'
         return import_string
 
     # A recursive method for searching for classes in the java parse tree
