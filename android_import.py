@@ -66,7 +66,7 @@ class AndroidImportCommand(sublime_plugin.TextCommand):
     def user_picked_package(self, index):
         if index >= 0:
             picked_package = self.package_choices[index]
-            sublime.active_window().run_command('android_insert', {'picked_package': picked_package})
+            self.view.run_command('android_insert', {'picked_package': picked_package})
         # Recurse again to pick the next one
         self.ask_user_to_pick_package()
 
