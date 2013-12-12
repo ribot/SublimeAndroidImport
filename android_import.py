@@ -85,7 +85,7 @@ class AndroidImportCommand(sublime_plugin.TextCommand):
 
         for found_class in self.classes:
             if found_class in self.android_class_list:
-                found_android_classes.append(self.android_class_list[found_class])
+                found_android_classes.append(found_class)
 
         return found_android_classes
 
@@ -94,7 +94,7 @@ class AndroidImportCommand(sublime_plugin.TextCommand):
         current_imports = set()
 
         for an_import in tree.import_declarations:
-            current_imports.add(an_import.name.value)
+            current_imports.add(an_import.name.value.split(".")[-1])
 
         return current_imports
 
@@ -104,24 +104,25 @@ class AndroidImportCommand(sublime_plugin.TextCommand):
         imports.required = set()
         imports.action_needed = list()
 
-        for packages in found_android_classes:
+        for package in found_android_classes:
             # Check each to see if it's already imported
             required = True
-            for package in packages:
-                if package in current_imports:
-                    required = False
+            if package in current_imports:
+                required = False
 
             # If not then add it to the correct list
             if required is not False:
-                if len(packages) == 1:
-                    split_label = packages[0].split('.')
+                required_package_list = self.android_class_list.get(package)
+                if len(required_package_list) == 1:
+                    package_path = required_package_list[0]
+                    split_label = package_path.split('.')
                     # Dont bother importing java.lang classes
                     if len(split_label) >=2 and split_label[0] == 'java' and split_label[1] == 'lang':
                         pass
                     else:
-                        imports.required.add(packages[0])
+                        imports.required.add(package_path)
                 else:
-                    imports.action_needed.append(packages)
+                    imports.action_needed.append(required_package_list)
 
         return imports
 
@@ -157,7 +158,11 @@ class AndroidImportCommand(sublime_plugin.TextCommand):
         # Check if we need to add this thing to the class list
         results = self.check_add_to_class_list(thing)
         if results.should_add:
-            self.classes.add(results.class_name)
+            parts = results.class_name.split(".")
+            for part in parts:
+                if part[0].isupper():
+                    self.classes.add(part)
+                    break
 
         # Recuse through all lists and "SourceElements" in the non-callable attributes of the current thing
         attributes = filter(lambda a: not a.startswith('__') and not callable(getattr(thing,a)), dir(thing))
