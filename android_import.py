@@ -158,7 +158,11 @@ class AndroidImportCommand(sublime_plugin.TextCommand):
         # Check if we need to add this thing to the class list
         results = self.check_add_to_class_list(thing)
         if results.should_add:
-            self.classes.add(results.class_name.split(".")[-1])
+            parts = results.class_name.split(".")
+            for part in parts:
+                if part[0].isupper():
+                    self.classes.add(part)
+                    break
 
         # Recuse through all lists and "SourceElements" in the non-callable attributes of the current thing
         attributes = filter(lambda a: not a.startswith('__') and not callable(getattr(thing,a)), dir(thing))
