@@ -10,8 +10,24 @@ class AndroidImportCommand(sublime_plugin.TextCommand):
         # Setup the plugin in the super class
         sublime_plugin.TextCommand.__init__(self, view)
 
-        # Load the list of classes
-        classes_file = open(plugin_path + '/classes.txt')
+        try:
+            plugin_path = sublime.packages_path() + '/AndroidImport'
+            classes_file = open(plugin_path + '/classes.txt')
+        except IOError:
+            try:
+                plugin_path = sublime.installed_packages_path() + '/AndroidImport'
+                classes_file = open(plugin_path + '/classes.txt')
+            except IOError:
+                try:
+                    plugin_path = sublime.packages_path() + '/AndroidImport.sublime-package'
+                    classes_file = open(plugin_path + '/classes.txt')
+                except IOError:
+                    try:
+                        plugin_path = sublime.installed_packages_path() + '/AndroidImport.sublime-package'
+                        classes_file = open(plugin_path + '/classes.txt')
+                    except IOError:
+                        sublime.error_message("Couldn't load AndroidImport plugin. Maybe try reinstalling...")
+                        return
 
         self.android_class_list = dict()
         for line in classes_file.readlines():
