@@ -1,5 +1,10 @@
 #!/usr/bin/env python2
 
+import sys, os
+
+plugin_path = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(plugin_path)
+
 import lex
 import yacc
 from model import *

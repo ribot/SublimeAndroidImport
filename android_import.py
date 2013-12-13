@@ -1,4 +1,4 @@
-import sublime, sublime_plugin, json, sys, os, collections
+import sublime, sublime_plugin, json, sys, os, collections, zipfile
 
 plugin_path = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(plugin_path)
@@ -10,28 +10,37 @@ class AndroidImportCommand(sublime_plugin.TextCommand):
         # Setup the plugin in the super class
         sublime_plugin.TextCommand.__init__(self, view)
 
+        print('Testing')
+
         try:
+            print('1')
             plugin_path = sublime.packages_path() + '/AndroidImport'
             classes_file = open(plugin_path + '/classes.txt')
         except IOError:
             try:
+                print('2')
                 plugin_path = sublime.installed_packages_path() + '/AndroidImport'
                 classes_file = open(plugin_path + '/classes.txt')
             except IOError:
                 try:
+                    print('3')
                     plugin_path = sublime.packages_path() + '/AndroidImport.sublime-package'
-                    classes_file = open(plugin_path + '/classes.txt')
+                    with zipfile.ZipFile(plugin_path) as package_zip:
+                        classes_file = package_zip.open('classes.txt')
                 except IOError:
                     try:
+                        print('4')
                         plugin_path = sublime.installed_packages_path() + '/AndroidImport.sublime-package'
-                        classes_file = open(plugin_path + '/classes.txt')
+                        with zipfile.ZipFile(plugin_path) as package_zip2:
+                            print(package_zip2)
+                            classes_file = package_zip2.open('classes.txt')
                     except IOError:
                         sublime.error_message("Couldn't load AndroidImport plugin. Maybe try reinstalling...")
                         return
 
         self.android_class_list = dict()
         for line in classes_file.readlines():
-            line_parts = line.split('::')
+            line_parts = line.decode("utf-8").split('::')
             key = line_parts[0]
             line_parts.remove(key)
 
@@ -44,8 +53,9 @@ class AndroidImportCommand(sublime_plugin.TextCommand):
         self.edit = edit
 
         # Change directory to the plugin dir
-        prev_path = os.path.dirname(os.path.abspath(__file__))
-        os.chdir(plugin_path)
+        if not plugin_path.endswith('.sublime-package'):
+            prev_path = os.path.dirname(os.path.abspath(__file__))
+            os.chdir(plugin_path)
 
         # Get the current file contents as a string
         file_contents = self.view.substr(sublime.Region(0, self.view.size()))
@@ -72,7 +82,8 @@ class AndroidImportCommand(sublime_plugin.TextCommand):
         sublime.status_message("Finished importing " + number_of_imports + " Android classes")
 
         # Put the current dir back, just incase
-        os.chdir(prev_path)
+        if not plugin_path.endswith('.sublime-package'):
+            os.chdir(prev_path)
 
     def ask_user_to_pick_package(self):
         if len(self.action_needed_imports) > 0:
