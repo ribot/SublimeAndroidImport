@@ -418,10 +418,9 @@ class ExpressionParser(object):
                                 | primitive_type dims '.' CLASS
                                 | primitive_type '.' CLASS'''
         if len(p) == 4:
-            p[1].append_name(p[3])
-            p[0] = p[1]
+            p[0] = ClassLiteral(Type(p[1]))
         else:
-            p[0] = p[1] + '[' + p[2] + '].' + p[4]
+            p[0] = ClassLiteral(Type(p[1], dimensions=p[2]))
 
     def p_dims_opt(self, p):
         '''dims_opt : dims'''
@@ -731,7 +730,7 @@ class StatementParser(object):
 
     def p_empty_statement(self, p):
         '''empty_statement : ';' '''
-        # ignore
+        p[0] = Empty()
 
     def p_switch_statement(self, p):
         '''switch_statement : SWITCH '(' expression ')' switch_block'''
@@ -896,11 +895,11 @@ class StatementParser(object):
 
     def p_resource(self, p):
         '''resource : type variable_declarator_id '=' variable_initializer'''
-        p[0] = Resource(p[2], _type=p[1], initializer=p[4])
+        p[0] = Resource(p[2], type=p[1], initializer=p[4])
 
     def p_resource2(self, p):
         '''resource : modifiers type variable_declarator_id '=' variable_initializer'''
-        p[0] = Resource(p[3], _type=p[2], modifiers=p[1], initializer=p[5])
+        p[0] = Resource(p[3], type=p[2], modifiers=p[1], initializer=p[5])
 
     def p_finally(self, p):
         '''finally : FINALLY block'''
@@ -1466,7 +1465,7 @@ class ClassParser(object):
 
     def p_constructor_declaration(self, p):
         '''constructor_declaration : constructor_header method_body'''
-        p[0] = ConstructorDeclaration(p[1], p[2], modifiers=p[1]['modifiers'],
+        p[0] = ConstructorDeclaration(p[1]['name'], p[2], modifiers=p[1]['modifiers'],
                                       type_parameters=p[1]['type_parameters'],
                                       parameters=p[1]['parameters'], throws=p[1]['throws'])
 
@@ -1572,7 +1571,7 @@ class ClassParser(object):
 
     def p_interface_declaration(self, p):
         '''interface_declaration : interface_header interface_body'''
-        p[0] = InterfaceDeclaration(p[1], modifiers=p[1]['modifiers'],
+        p[0] = InterfaceDeclaration(p[1]['name'], modifiers=p[1]['modifiers'],
                                     type_parameters=p[1]['type_parameters'],
                                     extends=p[1]['extends'],
                                     body=p[2])
@@ -1881,7 +1880,7 @@ class ClassParser(object):
 
     def p_member_value_pair(self, p):
         '''member_value_pair : simple_name '=' member_value'''
-        p[0] = AnnotationMember(p[1], p[2])
+        p[0] = AnnotationMember(p[1], p[3])
 
     def p_marker_annotation(self, p):
         '''marker_annotation : annotation_name'''
@@ -2061,4 +2060,3 @@ if __name__ == '__main__':
         t = parser.parse(expr, lexer=lexer, debug=1)
         print('result: {}'.format(t))
         print('--------------------------------')
-
