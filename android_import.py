@@ -10,26 +10,20 @@ class AndroidImportCommand(sublime_plugin.TextCommand):
         # Setup the plugin in the super class
         sublime_plugin.TextCommand.__init__(self, view)
 
-        print('Testing')
-
         try:
-            print('1')
             plugin_path = sublime.packages_path() + '/AndroidImport'
             classes_file = open(plugin_path + '/classes.txt')
         except IOError:
             try:
-                print('2')
                 plugin_path = sublime.installed_packages_path() + '/AndroidImport'
                 classes_file = open(plugin_path + '/classes.txt')
             except IOError:
                 try:
-                    print('3')
                     plugin_path = sublime.packages_path() + '/AndroidImport.sublime-package'
                     with zipfile.ZipFile(plugin_path) as package_zip:
                         classes_file = package_zip.open('classes.txt')
                 except IOError:
                     try:
-                        print('4')
                         plugin_path = sublime.installed_packages_path() + '/AndroidImport.sublime-package'
                         with zipfile.ZipFile(plugin_path) as package_zip2:
                             print(package_zip2)
@@ -209,7 +203,7 @@ class AndroidImportCommand(sublime_plugin.TextCommand):
         class_name = None
 
         # If the current thing is a "Type" then add it to the class list
-        if type(thing) is model.Type:
+        if type(thing) is model.Type and type(thing.name) is model.Name:
             should_add = True
             class_name = thing.name.value
         # If its a method invocation we may be calling a static method of a class
