@@ -2,7 +2,12 @@ import sys, os, collections
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "libs"))
 
-import plyj, model
+# We need to do this to make the tests work
+try:
+    import plyj, model
+except ImportError:
+    import plyj.parser as plyj
+    import plyj.model as model
 
 class AndroidParser(object):
     def parse(self, fileContents, androidClassList):
