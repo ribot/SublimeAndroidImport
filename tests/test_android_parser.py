@@ -1,6 +1,4 @@
-import unittest, os, sys
-
-sys.path.append(os.path.join(os.path.dirname(__file__), "libs"))
+import unittest
 
 import android_parser
 
