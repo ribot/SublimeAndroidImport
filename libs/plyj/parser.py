@@ -1,13 +1,8 @@
 #!/usr/bin/env python2
 
-import sys, os
-
-plugin_path = os.path.dirname(os.path.abspath(__file__))
-sys.path.append(plugin_path)
-
-import lex
-import yacc
-from model import *
+import ply.lex as lex
+import ply.yacc as yacc
+from .model import *
 
 class MyLexer(object):
 
@@ -48,9 +43,7 @@ class MyLexer(object):
     t_CHAR_LITERAL = r'\'([^\\\n]|(\\.))*?\''
     t_STRING_LITERAL = r'\"([^\\\n]|(\\.))*?\"'
 
-    def t_LINE_COMMENT(self, t):
-        r'//.*?\n'
-        t.lexer.lineno += 1
+    t_ignore_LINE_COMMENT = r'//[^\\\n].*'
 
     def t_BLOCK_COMMENT(self, t):
         r'/\*(.|\n)*?\*/'
@@ -602,7 +595,7 @@ class StatementParser(object):
             p[0] = p[1] + [p[3]]
 
     def p_method_invocation(self, p):
-        '''method_invocation : name '(' argument_list_opt ')' '''
+        '''method_invocation : NAME '(' argument_list_opt ')' '''
         p[0] = MethodInvocation(p[1], arguments=p[3])
 
     def p_method_invocation2(self, p):
@@ -612,7 +605,8 @@ class StatementParser(object):
         p[0] = MethodInvocation(p[4], target=p[1], type_arguments=p[3], arguments=p[6])
 
     def p_method_invocation3(self, p):
-        '''method_invocation : primary '.' NAME '(' argument_list_opt ')'
+        '''method_invocation : name '.' NAME '(' argument_list_opt ')'
+                             | primary '.' NAME '(' argument_list_opt ')'
                              | SUPER '.' NAME '(' argument_list_opt ')' '''
         p[0] = MethodInvocation(p[3], target=p[1], arguments=p[5])
 
@@ -1536,10 +1530,7 @@ class ClassParser(object):
         '''method_declaration : abstract_method_declaration
                               | method_header method_body'''
         if len(p) == 2:
-            p[0] = MethodDeclaration(p[1]['name'], abstract=True, parameters=p[1]['parameters'],
-                                     extended_dims=p[1]['extended_dims'], type_parameters=p[1]['type_parameters'],
-                                     return_type=p[1]['type'], modifiers=p[1]['modifiers'],
-                                     throws=p[1]['throws'])
+            p[0] = p[1]
         else:
             p[0] = MethodDeclaration(p[1]['name'], parameters=p[1]['parameters'],
                                      extended_dims=p[1]['extended_dims'], type_parameters=p[1]['type_parameters'],
@@ -1548,8 +1539,11 @@ class ClassParser(object):
 
     def p_abstract_method_declaration(self, p):
         '''abstract_method_declaration : method_header ';' '''
-        p[0] = p[1]
-
+        p[0] = MethodDeclaration(p[1]['name'], abstract=True, parameters=p[1]['parameters'],
+                                 extended_dims=p[1]['extended_dims'], type_parameters=p[1]['type_parameters'],
+                                 return_type=p[1]['type'], modifiers=p[1]['modifiers'],
+                                 throws=p[1]['throws'])
+ 
     def p_method_header(self, p):
         '''method_header : method_header_name formal_parameter_list_opt ')' method_header_extended_dims method_header_throws_clause_opt'''
         p[1]['parameters'] = p[2]
@@ -2060,3 +2054,4 @@ if __name__ == '__main__':
         t = parser.parse(expr, lexer=lexer, debug=1)
         print('result: {}'.format(t))
         print('--------------------------------')
+

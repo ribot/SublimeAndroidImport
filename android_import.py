@@ -1,7 +1,7 @@
 import sublime, sublime_plugin, json, sys, os, collections, zipfile
 
 plugin_path = os.path.dirname(os.path.abspath(__file__))
-sys.path.append(plugin_path)
+sys.path.append(os.path.join(os.path.dirname(__file__), "libs"))
 
 import plyj, model
 
@@ -26,7 +26,6 @@ class AndroidImportCommand(sublime_plugin.TextCommand):
                     try:
                         plugin_path = sublime.installed_packages_path() + '/AndroidImport.sublime-package'
                         with zipfile.ZipFile(plugin_path) as package_zip2:
-                            print(package_zip2)
                             classes_file = package_zip2.open('classes.txt')
                     except IOError:
                         sublime.error_message("Couldn't load AndroidImport plugin. Maybe try reinstalling...")
@@ -34,7 +33,7 @@ class AndroidImportCommand(sublime_plugin.TextCommand):
 
         self.android_class_list = dict()
         for line in classes_file.readlines():
-            line_parts = line.decode("utf-8").split('::')
+            line_parts = line.split('::')
             key = line_parts[0]
             line_parts.remove(key)
 
@@ -218,7 +217,7 @@ class AndroidImportCommand(sublime_plugin.TextCommand):
             if possible_class_name[0].isupper():
                 should_add = True
                 class_name = possible_class_name
-        
+
         return return_values(should_add, class_name)
 
 class AndroidInsertCommand(AndroidImportCommand):
