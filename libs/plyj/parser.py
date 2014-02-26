@@ -1,5 +1,9 @@
 #!/usr/bin/env python2
 
+import sys, os
+
+sys.path.append(os.path.join(os.path.dirname(__file__)))
+
 import ply.lex as lex
 import ply.yacc as yacc
 from .model import *
@@ -1543,7 +1547,7 @@ class ClassParser(object):
                                  extended_dims=p[1]['extended_dims'], type_parameters=p[1]['type_parameters'],
                                  return_type=p[1]['type'], modifiers=p[1]['modifiers'],
                                  throws=p[1]['throws'])
- 
+
     def p_method_header(self, p):
         '''method_header : method_header_name formal_parameter_list_opt ')' method_header_extended_dims method_header_throws_clause_opt'''
         p[1]['parameters'] = p[2]
